@@ -1,36 +1,57 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python3
 
-import socket, json, sys
+# p2p server
 
-def P2Pserver():
-    """
-    """
+import socket, json, sys, time
 
 server_addr = ('localhost', 9999)
+client_ip = {}
+
+def client_login(skt, json_data):
+    name = json_data['name']
+    addr = json_data['addr']
+    client_ip[name] = addr
+    skt.sendto('login success', addr)
+    print('[%s] login, addr is %s' % (name, addr))
+
+def client_logout(skt, json_data):
+    name = json_data['name']
+    addr = json_data['addr']
+    del client_ip[name]
+    skt.sendto('logout success', addr)
+    print('[%s] logout, addr is %s' % (name, addr))
+
+def query(skt, json_data):
+    name = json_data['name']
+    addr = json_data['addr']
+    tmp = {
+        'type' : 'through',
+        'addr' : client_ip[name]
+    }
+    skt.sendto(json.dumps(tmp), addr)
+    tmps['addr'] = addr
+    skt.sendto(json.dumps(tmp), client_ip[name])
+
+handler = {
+    'login' : client_login,
+    'logout': client_logout,
+    'query' : query,
+}
 
 if __name__ == '__main__':
-    skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     skt.bind(server_addr)
-    skt.listen(5)
-    print("listen...")
 
-    while True:
-        try:
-            conn, addr = skt.accept()
-        except KeyboardInterrupt:
-            skt.close()
-            print("\nexit...")
-            sys.exit(0)
-        print("get a new connection ", addr)
-
-        conn.settimeout(5)
-        buf = conn.recv(1024).decode('utf8')
-        print("receive: ", buf)
-
-        if '0' == buf:
-            conn.send(u'exit'.encode('utf8'))
-        else:
-            conn.send((u'welcome %s' % buf).encode('utf8'))
-
-        conn.close()
+    try:
+        while True:
+            data, addr = skt.recvfrom(1000)
+            json_data = json.loads(data)
+            json_data['addr'] = addr
+            handler[json_data['type']](skt, json_data)
+    except Exception, e:
+        print e
+    except KeyboardInterrupt, e:
+        print 'bye'
+    finally:
+        skt.close()
