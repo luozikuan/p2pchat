@@ -30,7 +30,7 @@ def query(skt, json_data):
         'addr' : client_ip[name]
     }
     skt.sendto(json.dumps(tmp), addr)
-    tmps['addr'] = addr
+    tmp['addr'] = addr
     skt.sendto(json.dumps(tmp), client_ip[name])
 
 handler = {
