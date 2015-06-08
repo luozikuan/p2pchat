@@ -12,14 +12,22 @@ def client_login(skt, json_data):
     name = json_data['name']
     addr = json_data['addr']
     client_ip[name] = addr
-    skt.sendto('login success', addr)
+    reply = {}
+    reply['online'] = get_online_user()
+    skt.sendto(json.dumps(reply).encode(), addr)
     print('[%s] login, addr is %s' % (name, addr))
+
+def get_online_user():
+    arr = []
+    for name in client_ip:
+        arr.append(name)
+    return arr
 
 def client_logout(skt, json_data):
     name = json_data['name']
     addr = json_data['addr']
     del client_ip[name]
-    skt.sendto('logout success', addr)
+    skt.sendto(b'logout success', addr)
     print('[%s] logout, addr is %s' % (name, addr))
 
 def query(skt, json_data):
@@ -46,12 +54,13 @@ if __name__ == '__main__':
     try:
         while True:
             data, addr = skt.recvfrom(1000)
+            data = data.decode()
             json_data = json.loads(data)
             json_data['addr'] = addr
             handler[json_data['type']](skt, json_data)
-    except Exception, e:
-        print e
-    except KeyboardInterrupt, e:
-        print 'bye'
+    except Exception as e:
+        print(e)
+    except KeyboardInterrupt as e:
+        print('bye')
     finally:
         skt.close()

@@ -1,17 +1,17 @@
-# -*- coding: utf-8 -*-
+# -*- Coding: utf-8 -*-
 #!/usr/bin/python3
 
 # p2p client
 
 import socket, json, time
 
+#server_addr = ('182.92.215.130', 9999)
 server_addr = ('localhost', 9999)
 
-
 def send_message(skt, data):
-    skt.send(data)
+    skt.send(data.encode())
     recv, t = skt.recvfrom(1000)
-    return recv
+    return recv.decode()
 
 # def sendto_message(addr, data):
 #     skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -20,7 +20,7 @@ def send_message(skt, data):
 
 def recv_message(skt):
     recv = skt.recv(1000)
-    return recv
+    return recv.decode()
 
 def login(skt, name):
     tmp = {}
@@ -40,11 +40,11 @@ def logout(skt, name):
 
 def menu_select():
     menu = ('logout', 'send', 'receive', 'query')
-    print('----------')
+    print('\n------menu------')
     for i in range(len(menu)):
         print('%d. %s' % (i, menu[i]))
-    print('----------')
-    num = input('your choise: ')
+    print('----------------')
+    num = int(input('your choise: '))
     return menu[num]
 
 def query_addr(peer):
@@ -62,30 +62,36 @@ def p2p_send(skt, peer, data):
 if __name__ == '__main__':
     skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     skt.connect(server_addr)
-    username = raw_input("login name: ")
+    username = input("login name: ")
     try:
-        print login(skt, username)
+        #print(login(skt, username))
+        reply = login(skt, username)
+        reply = json.loads(reply)
+        print('------online------')
+        for name in reply['online']:
+            print(name)
+        print('------------------')
         while True:
             func = menu_select()
             if func == 'logout':
                 logout(skt, username)
                 break
             elif func == 'query':
-                name = raw_input('peer name: ')
+                name = input('peer name: ')
                 addr = query_addr(name)
-                print addr
+                print(addr)
             elif func == 'send':
-                peer = raw_input('to who: ')
-                data = raw_input('say what: ')
+                peer = input('to who: ')
+                data = input('say what: ')
                 p2p_send(skt, peer, data)
             elif func == 'receive':
-                print recv_message(skt)
+                print(recv_message(skt))
             else:
                 print("not implement yet")
 
-    except Exception, e:
-        print e
-    except KeyboardInterrupt, e:
-        print 'bye'
+    except Exception as e:
+        print(e)
+    except KeyboardInterrupt as e:
+        print('bye')
     finally:
         skt.close()
